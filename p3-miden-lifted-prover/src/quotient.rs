@@ -146,7 +146,7 @@ where
     let n = coset.trace_height();
     let d = q_evals.len() / n;
     let log_d = log2_strict_usize(d);
-    let log_blowup = config.pcs().fri.log_blowup;
+    let log_blowup = config.pcs().fri.log_blowup();
     let b = 1usize << log_blowup;
 
     debug_assert!(

@@ -54,7 +54,7 @@ where
         let group_widths: Vec<&[usize]> = commitments.iter().map(|(_, gw)| gw.as_slice()).collect();
         let evals = read_eval_matrices::<F, EF, Ch>(&group_widths, num_eval_points, channel)?;
 
-        let pow_witness = channel.grind(params.deep_pow_bits)?;
+        let pow_witness = channel.grind(params.deep_pow_bits())?;
         let challenge_columns: EF = channel.sample_algebra_element();
         let challenge_points: EF = channel.sample_algebra_element();
 

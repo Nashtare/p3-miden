@@ -49,7 +49,7 @@ where
         for _ in 0..num_rounds {
             let commitment = channel.receive_commitment()?.clone();
 
-            let pow_witness = channel.grind(params.folding_pow_bits)?;
+            let pow_witness = channel.grind(params.folding_pow_bits())?;
 
             let beta: EF = channel.sample_algebra_element();
             rounds.push(FriRoundTranscript {

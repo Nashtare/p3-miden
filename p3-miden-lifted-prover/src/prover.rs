@@ -243,7 +243,7 @@ where
     );
     let has_aux = aux_widths.iter().any(|&w| w > 0);
 
-    let log_blowup = config.pcs().fri.log_blowup;
+    let log_blowup = config.pcs().fri.log_blowup();
 
     // Infer constraint degree from symbolic AIR analysis (max across all AIRs)
     let log_constraint_degree = instances

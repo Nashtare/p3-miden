@@ -65,7 +65,7 @@ impl<F: TwoAdicField, EF: ExtensionField<F>, L: Lmcs<F = F>> DeepOracle<F, EF, L
     ///
     /// `log_lde_height` is the log₂ of the LDE evaluation domain height (i.e. the height of
     /// the committed LDE matrices). When a trace degree is known, it is typically
-    /// `log_trace_height + params.fri.log_blowup` (plus any extension used by the caller).
+    /// `log_trace_height + params.fri.log_blowup()` (plus any extension used by the caller).
     ///
     /// Returns the oracle and per-matrix evaluations: `evals[g][m]` is a
     /// `RowMajorMatrix<EF>` with one row per evaluation point.
@@ -83,7 +83,7 @@ impl<F: TwoAdicField, EF: ExtensionField<F>, L: Lmcs<F = F>> DeepOracle<F, EF, L
         let evals = read_eval_matrices::<F, EF, Ch>(&group_widths, eval_points.len(), channel)?;
 
         // 1. Check grinding witness
-        channel.grind(params.deep_pow_bits)?;
+        channel.grind(params.deep_pow_bits())?;
 
         // 2. Sample DEEP challenges
         let challenge_columns: EF = channel.sample_algebra_element();

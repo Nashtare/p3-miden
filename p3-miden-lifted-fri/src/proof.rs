@@ -48,7 +48,7 @@ where
     ///
     /// `log_lde_height` is the log₂ of the LDE evaluation domain height (i.e. the height of
     /// the committed LDE matrices). When a trace degree is known, it is typically
-    /// `log_trace_height + params.fri.log_blowup` (plus any extension used by the caller).
+    /// `log_trace_height + params.fri.log_blowup()` (plus any extension used by the caller).
     pub fn from_verifier_channel<Ch, const N: usize>(
         params: &PcsParams,
         lmcs: &L,
@@ -74,11 +74,11 @@ where
         let fri_transcript =
             FriTranscript::from_verifier_channel(&params.fri, log_lde_height, channel)?;
 
-        let query_pow_witness = channel.grind(params.query_pow_bits)?;
+        let query_pow_witness = channel.grind(params.query_pow_bits())?;
 
         // Sample exponents and convert to tree indices (bit-reversed),
         // matching the prover/verifier convention.
-        let tree_indices: Vec<usize> = (0..params.num_queries)
+        let tree_indices: Vec<usize> = (0..params.num_queries())
             .map(|_| {
                 let exp = channel.sample_bits(log_lde_height);
                 reverse_bits_len(exp, log_lde_height)

@@ -67,17 +67,12 @@ const D: usize = 2; // constraint degree (KeccakAir)
 // =============================================================================
 
 fn lifted_config() -> LiftedConfig {
-    let pcs = p3_miden_lifted_fri::PcsParams {
-        fri: FriParams {
-            log_blowup: LOG_BLOWUP,
-            fold: FriFold::ARITY_2,
-            log_final_degree: 0,
-            folding_pow_bits: 0,
-        },
-        deep: DeepParams { deep_pow_bits: 0 },
-        num_queries: 1,
-        query_pow_bits: 0,
-    };
+    let pcs = p3_miden_lifted_fri::PcsParams::new(
+        DeepParams::new(0),
+        FriParams::new(LOG_BLOWUP as u8, FriFold::ARITY_2, 0, 0),
+        1,
+        0,
+    );
     let (_, sponge, compress) = bb::test_components();
     let lmcs: LiftedLmcs = LmcsConfig::new(sponge, compress);
     LiftedConfig::new(pcs, lmcs, Dft::default(), bb::test_challenger())

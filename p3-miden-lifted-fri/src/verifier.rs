@@ -80,11 +80,11 @@ where
     let fri_oracle = FriOracle::new(&params.fri, log_lde_height, channel)?;
 
     // Check query PoW witness and sample query indices
-    channel.grind(params.query_pow_bits)?;
+    channel.grind(params.query_pow_bits())?;
 
     // Sample exponents and convert to tree indices immediately.
     // Tree indices are bit-reversed exponents (LMCS stores in bit-reversed order).
-    let tree_indices: BTreeSet<usize> = (0..params.num_queries)
+    let tree_indices: BTreeSet<usize> = (0..params.num_queries())
         .map(|_| {
             let exp = channel.sample_bits(log_lde_height);
             reverse_bits_len(exp, log_lde_height)

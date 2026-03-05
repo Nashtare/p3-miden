@@ -125,12 +125,12 @@ fn run_roundtrip_case(case: &FriRoundtripCase, seed: u64) -> Result<(), FriError
     let mut rng = SmallRng::seed_from_u64(seed);
     let lmcs = test_lmcs();
 
-    let params = FriParams {
-        log_blowup: case.log_blowup,
-        fold: case.fold,
-        log_final_degree: case.log_final_degree,
-        folding_pow_bits: case.folding_pow_bits,
-    };
+    let params = FriParams::new(
+        case.log_blowup as u8,
+        case.fold,
+        case.log_final_degree as u8,
+        case.folding_pow_bits as u8,
+    );
 
     let evals =
         random_lde_matrix::<F, EF>(&mut rng, case.log_poly_degree, case.log_blowup, 1, F::ONE)
@@ -170,15 +170,15 @@ fn test_fri_verify_wrong_eval() {
     let lmcs = test_lmcs();
 
     let log_poly_degree = 8;
-    let log_blowup = 2;
+    let log_blowup = 2usize;
     let log_final_degree = 2;
 
-    let params = FriParams {
-        log_blowup,
-        fold: FriFold::ARITY_2,
-        log_final_degree,
-        folding_pow_bits: 1,
-    };
+    let params = FriParams::new(
+        log_blowup as u8,
+        FriFold::ARITY_2,
+        log_final_degree as u8,
+        1,
+    );
 
     let evals = random_lde_matrix::<F, EF>(&mut rng, log_poly_degree, log_blowup, 1, F::ONE).values;
     let lde_size = evals.len();
@@ -219,15 +219,15 @@ fn test_fri_verify_wrong_beta() {
     let lmcs = test_lmcs();
 
     let log_poly_degree = 8;
-    let log_blowup = 2;
+    let log_blowup = 2usize;
     let log_final_degree = 2;
 
-    let params = FriParams {
-        log_blowup,
-        fold: FriFold::ARITY_2,
-        log_final_degree,
-        folding_pow_bits: 0, // No grinding to simplify test
-    };
+    let params = FriParams::new(
+        log_blowup as u8,
+        FriFold::ARITY_2,
+        log_final_degree as u8,
+        0,
+    );
 
     // Create two independent provers with different evaluations.
     let evals1 =
@@ -285,15 +285,15 @@ fn test_fri_zero_rounds_final_poly_only() {
     let lmcs = test_lmcs();
 
     let log_poly_degree = 4;
-    let log_blowup = 0;
+    let log_blowup = 0usize;
     let log_final_degree = log_poly_degree; // final degree >= domain size => zero rounds
 
-    let params = FriParams {
-        log_blowup,
-        fold: FriFold::ARITY_2,
-        log_final_degree,
-        folding_pow_bits: 0,
-    };
+    let params = FriParams::new(
+        log_blowup as u8,
+        FriFold::ARITY_2,
+        log_final_degree as u8,
+        0,
+    );
 
     let evals = random_lde_matrix::<F, EF>(&mut rng, log_poly_degree, log_blowup, 1, F::ONE).values;
     let lde_size = evals.len();
@@ -332,15 +332,15 @@ fn test_final_polynomial_correctness() {
     let lmcs = test_lmcs();
 
     let log_poly_degree = 6;
-    let log_blowup = 2;
-    let log_final_degree = 3;
+    let log_blowup = 2usize;
+    let log_final_degree = 3usize;
 
-    let params = FriParams {
-        log_blowup,
-        fold: FriFold::ARITY_2,
-        log_final_degree,
-        folding_pow_bits: 0, // No grinding for this test
-    };
+    let params = FriParams::new(
+        log_blowup as u8,
+        FriFold::ARITY_2,
+        log_final_degree as u8,
+        0,
+    );
 
     let poly_degree = 1 << log_poly_degree;
     let final_degree = 1 << log_final_degree;

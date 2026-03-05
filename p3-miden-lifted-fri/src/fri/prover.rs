@@ -101,7 +101,7 @@ where
         let mut domain_size = evals.len();
         let log_domain_size = log2_strict_usize(domain_size);
         let final_poly_degree = params.final_poly_degree(log_domain_size);
-        let final_domain_size = final_poly_degree << params.log_blowup;
+        let final_domain_size = final_poly_degree << params.log_blowup();
 
         // ─────────────────────────────────────────────────────────────────────────
         // Precompute s_inv for all cosets
@@ -151,7 +151,7 @@ where
             // ─────────────────────────────────────────────────────────────────────
             // Grind and sample folding challenge beta
             // ─────────────────────────────────────────────────────────────────────
-            let _pow_witness = channel.grind(params.folding_pow_bits);
+            let _pow_witness = channel.grind(params.folding_pow_bits());
             let beta: EF = channel.sample_algebra_element();
 
             // ─────────────────────────────────────────────────────────────────────

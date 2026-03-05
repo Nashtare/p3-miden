@@ -67,19 +67,9 @@ pub fn sample_indices<R: Rng>(rng: &mut R, upper: usize, count: usize) -> Vec<us
 }
 
 fn test_params() -> PcsParams {
-    let fri = FriParams {
-        log_blowup: 2,
-        fold: FriFold::ARITY_2,
-        log_final_degree: 2,
-        folding_pow_bits: 1,
-    };
-    let deep = DeepParams { deep_pow_bits: 1 };
-    PcsParams {
-        deep,
-        fri,
-        num_queries: 5,
-        query_pow_bits: 1,
-    }
+    let fri = FriParams::new(2, FriFold::ARITY_2, 2, 1);
+    let deep = DeepParams::new(1);
+    PcsParams::new(deep, fri, 5, 1)
 }
 
 // ============================================================================
@@ -157,38 +147,33 @@ fn test_pcs_cases() {
 
     // Case 1: single matrix, single tree.
     let rng = &mut SmallRng::seed_from_u64(42);
-    let matrix = random_lde_matrix(rng, 6, params.fri.log_blowup, 3, F::GENERATOR);
+    let matrix = random_lde_matrix(rng, 6, params.fri.log_blowup(), 3, F::GENERATOR);
     let tree = lmcs.build_aligned_tree(vec![matrix]);
     run_pcs_case(&params, vec![tree], 100).expect("single-tree roundtrip");
 
     // Case 2: two separate trees with different column counts.
     let rng = &mut SmallRng::seed_from_u64(24);
-    let mat_a = random_lde_matrix(rng, 6, params.fri.log_blowup, 2, F::GENERATOR);
-    let mat_b = random_lde_matrix(rng, 6, params.fri.log_blowup, 4, F::GENERATOR);
+    let mat_a = random_lde_matrix(rng, 6, params.fri.log_blowup(), 2, F::GENERATOR);
+    let mat_b = random_lde_matrix(rng, 6, params.fri.log_blowup(), 4, F::GENERATOR);
     let tree_a = lmcs.build_aligned_tree(vec![mat_a]);
     let tree_b = lmcs.build_aligned_tree(vec![mat_b]);
     run_pcs_case(&params, vec![tree_a, tree_b], 200).expect("multi-tree roundtrip");
 
     // Case 3: mixed heights in one commitment group (LMCS upsampling).
     let rng = &mut SmallRng::seed_from_u64(99);
-    let short = random_lde_matrix(rng, 4, params.fri.log_blowup, 2, F::GENERATOR);
-    let tall = random_lde_matrix(rng, 6, params.fri.log_blowup, 3, F::GENERATOR);
+    let short = random_lde_matrix(rng, 4, params.fri.log_blowup(), 2, F::GENERATOR);
+    let tall = random_lde_matrix(rng, 6, params.fri.log_blowup(), 3, F::GENERATOR);
     let tree = lmcs.build_aligned_tree(vec![short, tall]);
     run_pcs_case(&params, vec![tree], 300).expect("mixed-height roundtrip");
 
     // Case 4: random (non-low-degree) data — FRI should reject.
     let rng = &mut SmallRng::seed_from_u64(77);
-    let reject_params = PcsParams {
-        deep: DeepParams { deep_pow_bits: 1 },
-        fri: FriParams {
-            log_blowup: 1,
-            fold: FriFold::ARITY_2,
-            log_final_degree: 2,
-            folding_pow_bits: 1,
-        },
-        num_queries: 20,
-        query_pow_bits: 1,
-    };
+    let reject_params = PcsParams::new(
+        DeepParams::new(1),
+        FriParams::new(1, FriFold::ARITY_2, 2, 1),
+        20,
+        1,
+    );
     let height = 1 << 8;
     let matrix = RowMajorMatrix::<F>::rand(rng, height, 3);
     let tree = lmcs.build_aligned_tree(vec![matrix]);

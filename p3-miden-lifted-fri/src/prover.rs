@@ -27,8 +27,8 @@ use crate::fri::prover::FriPolys;
 ///
 /// `log_lde_height` is the log₂ of the LDE evaluation domain height (i.e. the height of
 /// the committed LDE matrices). When a trace degree is known, it is typically
-/// `log_trace_height + params.fri.log_blowup` (plus any extension used by the caller).
-/// In that common case, the trace subgroup `H` has size `2^(log_lde_height - params.fri.log_blowup)`,
+/// `log_trace_height + params.fri.log_blowup()` (plus any extension used by the caller).
+/// In that common case, the trace subgroup `H` has size `2^(log_lde_height - params.fri.log_blowup())`,
 /// while the LDE coset `gK` has size `2^log_lde_height`.
 ///
 /// Alignment is derived from the trace trees to pad DEEP evaluations consistently.
@@ -68,7 +68,7 @@ pub fn open_with_channel<F, EF, L, M, Ch, const N: usize>(
             &params.deep,
             trace_trees,
             eval_points,
-            params.fri.log_blowup,
+            params.fri.log_blowup(),
             channel,
         )
     });
@@ -84,7 +84,7 @@ pub fn open_with_channel<F, EF, L, M, Ch, const N: usize>(
     // ─────────────────────────────────────────────────────────────────────────
     // Grind for query sampling
     // ─────────────────────────────────────────────────────────────────────────
-    let _query_pow_witness = channel.grind(params.query_pow_bits);
+    let _query_pow_witness = channel.grind(params.query_pow_bits());
 
     // ─────────────────────────────────────────────────────────────────────────
     // Sample query exponents and convert to tree indices
@@ -92,7 +92,7 @@ pub fn open_with_channel<F, EF, L, M, Ch, const N: usize>(
     // Exponents are domain point indices: domain point = g·ω^{exp}.
     // Tree indices are bit-reversed exponents (LMCS stores in bit-reversed order).
     // Collecting into BTreeSet ensures deduplication and sorted order.
-    let tree_indices: BTreeSet<usize> = (0..params.num_queries)
+    let tree_indices: BTreeSet<usize> = (0..params.num_queries())
         .map(|_| {
             let exp = channel.sample_bits(log_lde_height);
             reverse_bits_len(exp, log_lde_height)

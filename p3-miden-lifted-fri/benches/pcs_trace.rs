@@ -44,17 +44,12 @@ fn main() {
     let dft = Radix2DitParallel::<F>::default();
     let shift = F::GENERATOR;
 
-    let params = PcsParams {
-        deep: DeepParams { deep_pow_bits: 0 },
-        fri: FriParams {
-            log_blowup: 2,
-            fold: FriFold::ARITY_4,
-            log_final_degree: 8,
-            folding_pow_bits: 0,
-        },
-        num_queries: 30,
-        query_pow_bits: 0,
-    };
+    let params = PcsParams::new(
+        DeepParams::new(0),
+        FriParams::new(2, FriFold::ARITY_4, 8, 0),
+        30,
+        0,
+    );
 
     for &log_lde_height in LOG_HEIGHTS {
         let size = 1usize << log_lde_height;

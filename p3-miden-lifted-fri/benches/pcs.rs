@@ -208,19 +208,12 @@ macro_rules! bench_scenario {
                         ("lifted/arity2", FriFold::ARITY_2),
                         ("lifted/arity4", FriFold::ARITY_4),
                     ] {
-                        let params = PcsParams {
-                            deep: DeepParams {
-                                deep_pow_bits: 0,
-                            },
-                            fri: FriParams {
-                                log_blowup: LOG_BLOWUP,
-                                fold,
-                                log_final_degree: LOG_FINAL_DEGREE,
-                                folding_pow_bits: 0,
-                            },
-                            num_queries: NUM_QUERIES,
-                            query_pow_bits: 0,
-                        };
+                        let params = PcsParams::new(
+                            DeepParams::new(0),
+                            FriParams::new(LOG_BLOWUP as u8, fold, LOG_FINAL_DEGREE as u8, 0),
+                            NUM_QUERIES,
+                            0,
+                        );
 
                         group.bench_function(BenchmarkId::from_parameter(name), |b| {
                             b.iter(|| {

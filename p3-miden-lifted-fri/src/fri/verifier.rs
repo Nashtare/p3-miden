@@ -85,7 +85,7 @@ where
         for _ in 0..num_rounds {
             let commitment = channel.receive_commitment()?.clone();
 
-            channel.grind(params.folding_pow_bits)?;
+            channel.grind(params.folding_pow_bits())?;
 
             let beta: EF = channel.sample_algebra_element();
             rounds.push(FriRoundOracle { commitment, beta });

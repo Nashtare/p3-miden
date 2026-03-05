@@ -8,7 +8,7 @@ use p3_miden_lifted_air::{
     AirBuilder, AirWithPeriodicColumns, BaseAir, BaseAirWithPublicValues, ExtensionBuilder,
     LiftedAir, LiftedAirBuilder,
 };
-use p3_miden_lifted_prover::AirWitness;
+use p3_miden_lifted_prover::{AirWitness, StarkConfig};
 use p3_miden_lifted_verifier::{VerifierError, verify_multi};
 use p3_miden_lmcs::Lmcs;
 use p3_miden_transcript::{ProverTranscript, TranscriptData, VerifierTranscript};
@@ -112,7 +112,7 @@ fn instance(idx: usize, height: usize, width: usize) -> (RowMajorMatrix<bb::F>, 
 #[test]
 fn multi_trace_with_aux_padding() {
     let config = test_config();
-    let alignment = config.lmcs.alignment();
+    let alignment = config.lmcs().alignment();
     let width = alignment + 1;
     let aux_width = alignment + 1;
 
@@ -142,7 +142,7 @@ fn multi_trace_with_aux_padding() {
 #[test]
 fn multi_trace_rejects_trailing_transcript_data() {
     let config = test_config();
-    let alignment = config.lmcs.alignment();
+    let alignment = config.lmcs().alignment();
     let width = alignment + 1;
     let aux_width = alignment + 1;
 

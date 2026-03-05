@@ -89,7 +89,7 @@ where
         let aux_widths: Vec<_> = instances.iter().map(|(air, _)| air.aux_width()).collect();
         let has_aux = aux_widths.iter().any(|&w| w > 0);
 
-        let log_blowup = config.pcs().fri.log_blowup;
+        let log_blowup = config.pcs().fri.log_blowup();
         let alignment = config.lmcs().alignment();
 
         // Infer constraint degree from symbolic AIR analysis (max across all AIRs)

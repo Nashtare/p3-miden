@@ -35,7 +35,7 @@ pub struct FriParams {
     ///
     /// Higher values increase soundness but also proof size and prover time.
     /// Typical values: 2-4 (blowup factors of 4-16).
-    pub log_blowup: usize,
+    log_blowup: u8,
 
     /// The FRI folding strategy.
     ///
@@ -47,13 +47,41 @@ pub struct FriParams {
     /// Folding stops when degree reaches `2^log_final_degree`.
     /// Final polynomial coefficients are sent in descending degree order
     /// `[cₙ, ..., c₁, c₀]` for direct Horner evaluation by the verifier.
-    pub log_final_degree: usize,
+    log_final_degree: u8,
 
     /// Grinding bits before each folding challenge.
-    pub folding_pow_bits: usize,
+    folding_pow_bits: u8,
 }
 
 impl FriParams {
+    /// Create new FRI parameters.
+    pub fn new(log_blowup: u8, fold: FriFold, log_final_degree: u8, folding_pow_bits: u8) -> Self {
+        Self {
+            log_blowup,
+            fold,
+            log_final_degree,
+            folding_pow_bits,
+        }
+    }
+
+    /// Log₂ of the blowup factor.
+    #[inline]
+    pub fn log_blowup(&self) -> usize {
+        self.log_blowup as usize
+    }
+
+    /// Log₂ of the final polynomial degree.
+    #[inline]
+    pub fn log_final_degree(&self) -> usize {
+        self.log_final_degree as usize
+    }
+
+    /// Grinding bits before each folding challenge.
+    #[inline]
+    pub fn folding_pow_bits(&self) -> usize {
+        self.folding_pow_bits as usize
+    }
+
     /// Compute the number of folding rounds for a given initial evaluation domain size.
     ///
     /// Each round reduces the domain by `2^log_folding_factor`. We fold until the domain
@@ -65,7 +93,7 @@ impl FriParams {
     #[inline]
     pub fn num_rounds(&self, log_domain_size: usize) -> usize {
         // Final domain size = final_degree × blowup = 2^(log_final_degree + log_blowup)
-        let log_max_final_size = self.log_final_degree + self.log_blowup;
+        let log_max_final_size = self.log_final_degree() + self.log_blowup();
         // Number of times we need to divide by 2^log_folding_factor
         log_domain_size
             .saturating_sub(log_max_final_size)
@@ -86,7 +114,7 @@ impl FriParams {
         // log of final domain size after folding
         let log_final_size = log_domain_size - num_rounds * self.fold.log_arity();
         // degree = domain_size / blowup = 2^(log_final_size - log_blowup)
-        1 << log_final_size.saturating_sub(self.log_blowup)
+        1 << log_final_size.saturating_sub(self.log_blowup())
     }
 }
 

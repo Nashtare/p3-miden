@@ -50,10 +50,10 @@ pub trait StarkConfig<F: TwoAdicField, EF: ExtensionField<F>>: Clone {
 /// (cloned for each proof/verification). Use this for tests and examples;
 /// production code can implement `StarkConfig` on a custom struct.
 pub struct GenericStarkConfig<F, EF, L, Dft, Ch> {
-    pub pcs: PcsParams,
-    pub lmcs: L,
-    pub dft: Dft,
-    pub challenger: Ch,
+    pcs: PcsParams,
+    lmcs: L,
+    dft: Dft,
+    challenger: Ch,
     _phantom: PhantomData<fn() -> (F, EF)>,
 }
 

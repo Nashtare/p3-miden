@@ -187,7 +187,7 @@ where
         "traces must be sorted by height in ascending order"
     );
 
-    let log_blowup = config.pcs().fri.log_blowup;
+    let log_blowup = config.pcs().fri.log_blowup();
 
     // Find max trace height
     let max_trace_height = traces.last().unwrap().height();

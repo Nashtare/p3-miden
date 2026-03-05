@@ -17,17 +17,12 @@ pub type TestDft = p3_dft::Radix2DitParallel<bb::F>;
 pub type TestConfig = GenericStarkConfig<bb::F, bb::EF, TestLmcs, TestDft, bb::Challenger>;
 
 pub fn test_config() -> TestConfig {
-    let pcs = PcsParams {
-        fri: FriParams {
-            log_blowup: 2,
-            fold: FriFold::ARITY_2,
-            log_final_degree: 2,
-            folding_pow_bits: 0,
-        },
-        deep: DeepParams { deep_pow_bits: 0 },
-        num_queries: 2,
-        query_pow_bits: 0,
-    };
+    let pcs = PcsParams::new(
+        DeepParams::new(0),
+        FriParams::new(2, FriFold::ARITY_2, 2, 0),
+        2,
+        0,
+    );
 
     let (_, sponge, compress) = bb::test_components();
     let lmcs: TestLmcs = LmcsConfig::new(sponge, compress);

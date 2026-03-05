@@ -45,17 +45,12 @@ fn main() {
     type Dft = Radix2DitParallel<Val>;
     type Config = GenericStarkConfig<Val, Challenge, Lmcs, Dft, bb::Challenger>;
 
-    let pcs = PcsParams {
-        fri: FriParams {
-            log_blowup: LOG_BLOWUP,
-            fold: FriFold::ARITY_2,
-            log_final_degree: 0,
-            folding_pow_bits: POW_BITS,
-        },
-        deep: DeepParams { deep_pow_bits: 0 },
-        num_queries: NUM_QUERIES,
-        query_pow_bits: 0,
-    };
+    let pcs = PcsParams::new(
+        DeepParams::new(0),
+        FriParams::new(LOG_BLOWUP as u8, FriFold::ARITY_2, 0, POW_BITS as u8),
+        NUM_QUERIES,
+        0,
+    );
 
     let (_, sponge, compress) = bb::test_components();
     let lmcs: Lmcs = LmcsConfig::new(sponge, compress);
