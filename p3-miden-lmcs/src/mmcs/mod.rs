@@ -155,7 +155,13 @@ where
             let mut pos = index;
 
             for sibling_cap in siblings {
-                let sibling_hash = Hash::from(sibling_cap.roots()[0]);
+                let roots = sibling_cap.roots();
+                // Each sibling entry is a single Merkle hash from `single_proof`, so the cap
+                // must contain exactly one root.
+                if roots.len() != 1 {
+                    return Err(LmcsError::InvalidProof);
+                }
+                let sibling_hash = Hash::from(roots[0]);
                 let is_left = pos & 1 == 0;
                 current = if is_left {
                     self.compress(current, sibling_hash)

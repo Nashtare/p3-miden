@@ -18,3 +18,4 @@ thiserror.workspace = true
 
 [dev-dependencies]
 p3-baby-bear.workspace = true
+p3-miden-dev-utils.workspace = true

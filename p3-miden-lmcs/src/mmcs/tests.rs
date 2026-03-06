@@ -1,5 +1,6 @@
 //! MMCS integration tests.
 
+use alloc::vec;
 use alloc::vec::Vec;
 
 use p3_commit::{BatchOpeningRef, Mmcs};
@@ -222,6 +223,30 @@ fn mmcs_verify_rejects_invalid_openings() {
             aligned: false,
             mutate: |_height, _alignment, _unaligned, _dims, _index, _opened_values, proof| {
                 proof.1.pop();
+                Err(LmcsError::InvalidProof)
+            },
+        },
+        Case {
+            name: "empty_sibling_cap",
+            seed: 27,
+            aligned: false,
+            mutate: |_height, _alignment, _unaligned, _dims, _index, _opened_values, proof| {
+                if let Some(first) = proof.1.first_mut() {
+                    *first = MerkleCap::new(Vec::new());
+                }
+                Err(LmcsError::InvalidProof)
+            },
+        },
+        Case {
+            name: "wrong_sized_sibling_cap",
+            seed: 28,
+            aligned: false,
+            mutate: |_height, _alignment, _unaligned, _dims, _index, _opened_values, proof| {
+                if let Some(first) = proof.1.first_mut()
+                    && let Some(root) = first.roots().first().copied()
+                {
+                    *first = MerkleCap::new(vec![root, root]);
+                }
                 Err(LmcsError::InvalidProof)
             },
         },

@@ -363,3 +363,33 @@ where
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+    use p3_field::PrimeCharacteristicRing;
+    use p3_matrix::dense::RowMajorMatrix;
+    use p3_miden_dev_utils::configs::baby_bear_poseidon2::F;
+    use p3_miden_lifted_air::{RowWindow, WindowAccess};
+
+    #[test]
+    fn row_window_from_view_reads_two_rows() {
+        let width = 3;
+        let values = vec![F::ZERO, F::ONE, F::new(2), F::new(3), F::new(4), F::new(5)];
+        let matrix = RowMajorMatrix::new(values, width);
+        let window = RowWindow::from_view(&matrix.as_view());
+        assert_eq!(window.current_slice().len(), width);
+        assert_eq!(window.next_slice().len(), width);
+        assert_eq!(window.current_slice()[0], F::ZERO);
+        assert_eq!(window.next_slice()[0], F::new(3));
+    }
+
+    #[test]
+    #[should_panic(expected = "expected 2 rows")]
+    fn row_window_from_view_panics_on_wrong_row_count() {
+        let width = 3;
+        let values = vec![F::ZERO; width];
+        let matrix = RowMajorMatrix::new(values, width);
+        let _ = RowWindow::from_view(&matrix.as_view());
+    }
+}

@@ -319,3 +319,262 @@ pub enum AirValidationError {
         max_period: usize,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use alloc::boxed::Box;
+    use alloc::vec;
+    use alloc::vec::Vec;
+
+    use crate::RowWindow;
+    use p3_air::{AirBuilder, ExtensionBuilder, PeriodicAirBuilder, PermutationAirBuilder};
+    use p3_field::PrimeCharacteristicRing;
+    use p3_miden_dev_utils::configs::baby_bear_poseidon2::{EF, F};
+
+    use super::{AirValidationError, LiftedAir, TracePart};
+    use crate::{AirWithPeriodicColumns, LiftedAirBuilder};
+
+    struct DummyAir {
+        width: usize,
+        aux_width: usize,
+        num_public_values: usize,
+        num_randomness: usize,
+        num_aux_values: usize,
+        periodic: Vec<Vec<F>>,
+    }
+
+    impl p3_air::BaseAir<F> for DummyAir {
+        fn width(&self) -> usize {
+            self.width
+        }
+
+        fn num_public_values(&self) -> usize {
+            self.num_public_values
+        }
+    }
+
+    impl AirWithPeriodicColumns<F> for DummyAir {
+        fn periodic_columns(&self) -> &[Vec<F>] {
+            &self.periodic
+        }
+    }
+
+    impl LiftedAir<F, EF> for DummyAir {
+        fn num_randomness(&self) -> usize {
+            self.num_randomness
+        }
+
+        fn aux_width(&self) -> usize {
+            self.aux_width
+        }
+
+        fn num_aux_values(&self) -> usize {
+            self.num_aux_values
+        }
+
+        fn eval<AB: LiftedAirBuilder<F = F>>(&self, _builder: &mut AB) {}
+    }
+
+    struct DummyBuilder<'a> {
+        main: RowWindow<'a, F>,
+        preprocessed: RowWindow<'a, F>,
+        aux: RowWindow<'a, EF>,
+        public_values: &'a [F],
+        randomness: &'a [EF],
+        permutation_values: &'a [EF],
+        periodic_values: &'a [F],
+    }
+
+    impl<'a> AirBuilder for DummyBuilder<'a> {
+        type F = F;
+        type Expr = F;
+        type Var = F;
+        type M = RowWindow<'a, F>;
+        type PublicVar = F;
+
+        fn main(&self) -> Self::M {
+            self.main
+        }
+
+        fn preprocessed(&self) -> &Self::M {
+            &self.preprocessed
+        }
+
+        fn public_values(&self) -> &[Self::PublicVar] {
+            self.public_values
+        }
+
+        fn is_first_row(&self) -> Self::Expr {
+            F::ZERO
+        }
+
+        fn is_last_row(&self) -> Self::Expr {
+            F::ZERO
+        }
+
+        fn is_transition_window(&self, _size: usize) -> Self::Expr {
+            F::ZERO
+        }
+
+        fn assert_zero<I: Into<Self::Expr>>(&mut self, _x: I) {}
+    }
+
+    impl<'a> ExtensionBuilder for DummyBuilder<'a> {
+        type EF = EF;
+        type ExprEF = EF;
+        type VarEF = EF;
+
+        fn assert_zero_ext<I>(&mut self, _x: I)
+        where
+            I: Into<Self::ExprEF>,
+        {
+        }
+    }
+
+    impl<'a> PermutationAirBuilder for DummyBuilder<'a> {
+        type MP = RowWindow<'a, EF>;
+        type RandomVar = EF;
+        type PermutationVar = EF;
+
+        fn permutation(&self) -> Self::MP {
+            self.aux
+        }
+
+        fn permutation_randomness(&self) -> &[Self::RandomVar] {
+            self.randomness
+        }
+
+        fn permutation_values(&self) -> &[Self::PermutationVar] {
+            self.permutation_values
+        }
+    }
+
+    impl<'a> PeriodicAirBuilder for DummyBuilder<'a> {
+        type PeriodicVar = F;
+
+        fn periodic_values(&self) -> &[Self::PeriodicVar] {
+            self.periodic_values
+        }
+    }
+
+    fn build_builder(
+        main_len: usize,
+        aux_len: usize,
+        public_len: usize,
+        randomness_len: usize,
+        aux_values_len: usize,
+        periodic_len: usize,
+    ) -> DummyBuilder<'static> {
+        let main_current = Box::leak(vec![F::ZERO; main_len].into_boxed_slice());
+        let main_next = Box::leak(vec![F::ZERO; main_len].into_boxed_slice());
+        let aux_current = Box::leak(vec![EF::ZERO; aux_len].into_boxed_slice());
+        let aux_next = Box::leak(vec![EF::ZERO; aux_len].into_boxed_slice());
+        let pre_current: &'static [F] = &[];
+        let pre_next: &'static [F] = &[];
+        let public_values = Box::leak(vec![F::ZERO; public_len].into_boxed_slice());
+        let randomness = Box::leak(vec![EF::ZERO; randomness_len].into_boxed_slice());
+        let permutation_values = Box::leak(vec![EF::ZERO; aux_values_len].into_boxed_slice());
+        let periodic_values = Box::leak(vec![F::ZERO; periodic_len].into_boxed_slice());
+
+        DummyBuilder {
+            main: RowWindow::from_two_rows(main_current, main_next),
+            preprocessed: RowWindow::from_two_rows(pre_current, pre_next),
+            aux: RowWindow::from_two_rows(aux_current, aux_next),
+            public_values,
+            randomness,
+            permutation_values,
+            periodic_values,
+        }
+    }
+
+    #[test]
+    fn is_valid_builder_accepts_matching_dimensions() {
+        let air = DummyAir {
+            width: 4,
+            aux_width: 3,
+            num_public_values: 2,
+            num_randomness: 2,
+            num_aux_values: 1,
+            periodic: vec![vec![F::ZERO; 2], vec![F::ONE; 2]],
+        };
+
+        let builder = build_builder(4, 3, 2, 2, 1, 2);
+        air.is_valid_builder(&builder)
+            .expect("builder should validate");
+    }
+
+    #[test]
+    fn is_valid_builder_reports_mismatched_dimensions() {
+        let air = DummyAir {
+            width: 4,
+            aux_width: 3,
+            num_public_values: 2,
+            num_randomness: 2,
+            num_aux_values: 1,
+            periodic: vec![vec![F::ZERO; 2], vec![F::ONE; 2]],
+        };
+
+        let cases = [
+            (TracePart::Main, 3, 3, 2, 2, 1, 2),
+            (TracePart::Aux, 4, 2, 2, 2, 1, 2),
+            (TracePart::PublicValues, 4, 3, 1, 2, 1, 2),
+            (TracePart::Randomness, 4, 3, 2, 3, 1, 2),
+            (TracePart::AuxValues, 4, 3, 2, 2, 2, 2),
+            (TracePart::PeriodicValues, 4, 3, 2, 2, 1, 3),
+        ];
+
+        for (part, main_len, aux_len, public_len, randomness_len, aux_values_len, periodic_len) in
+            cases
+        {
+            let builder = build_builder(
+                main_len,
+                aux_len,
+                public_len,
+                randomness_len,
+                aux_values_len,
+                periodic_len,
+            );
+            let err = air
+                .is_valid_builder(&builder)
+                .expect_err("expected builder mismatch");
+            match err {
+                AirValidationError::BuilderMismatch {
+                    part: actual_part,
+                    expected,
+                    actual,
+                } => {
+                    assert!(
+                        core::mem::discriminant(&actual_part) == core::mem::discriminant(&part)
+                    );
+                    match part {
+                        TracePart::Main => {
+                            assert_eq!(expected, air.width);
+                            assert_eq!(actual, main_len);
+                        }
+                        TracePart::Aux => {
+                            assert_eq!(expected, air.aux_width);
+                            assert_eq!(actual, aux_len);
+                        }
+                        TracePart::PublicValues => {
+                            assert_eq!(expected, air.num_public_values);
+                            assert_eq!(actual, public_len);
+                        }
+                        TracePart::Randomness => {
+                            assert_eq!(expected, air.num_randomness);
+                            assert_eq!(actual, randomness_len);
+                        }
+                        TracePart::AuxValues => {
+                            assert_eq!(expected, air.num_aux_values);
+                            assert_eq!(actual, aux_values_len);
+                        }
+                        TracePart::PeriodicValues => {
+                            assert_eq!(expected, air.periodic.len());
+                            assert_eq!(actual, periodic_len);
+                        }
+                    }
+                }
+                _ => panic!("unexpected error: {err:?}"),
+            }
+        }
+    }
+}
