@@ -46,6 +46,10 @@ impl DummyMidenAir {
             width >= 9,
             "DummyMidenAir needs at least 9 columns for the degree-9 constraint"
         );
+        assert!(
+            num_aux_cols > 0,
+            "DummyMidenAir requires at least one auxiliary column"
+        );
         Self {
             width,
             num_aux_cols,

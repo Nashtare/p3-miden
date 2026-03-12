@@ -73,6 +73,8 @@ use crate::{
 /// Errors that can occur during verification.
 #[derive(Debug, Error)]
 pub enum VerifierError {
+    #[error("no instances provided")]
+    NoInstances,
     #[error("AIR validation failed: {0}")]
     Air(#[from] AirValidationError),
     #[error("PCS verification failed: {0}")]
@@ -179,6 +181,10 @@ where
     SC: StarkConfig<F, EF>,
     A: LiftedAir<F, EF>,
 {
+    if instances.is_empty() {
+        return Err(VerifierError::NoInstances);
+    }
+
     let mut channel = VerifierTranscript::from_data(challenger, proof);
     // Validate AIR properties, instance dimensions, and ascending height.
     let log_max_trace_height = validate_instances(instances)?;
@@ -217,7 +223,7 @@ where
         .iter()
         .map(|(air, _)| air.num_randomness())
         .max()
-        .unwrap_or(0);
+        .expect("there is at least one instance");
 
     let randomness: Vec<EF> = (0..max_num_randomness)
         .map(|_| channel.sample_algebra_element::<EF>())
@@ -227,7 +233,6 @@ where
     let aux_commit = channel.receive_commitment()?.clone();
 
     // Receive aux values from the transcript (one EF element per aux value, per instance).
-    // When no AIR has aux columns, each entry is empty so nothing is received.
     let all_aux_values: Vec<Vec<EF>> = instances
         .iter()
         .map(|(air, _)| {

@@ -108,6 +108,10 @@ where
         A: LiftedAir<L::F, EF>,
         SC: StarkConfig<L::F, EF, Lmcs = L>,
     {
+        if instances.is_empty() {
+            return Err(VerifierError::NoInstances);
+        }
+
         let log_max_trace_height = validate_instances(instances)?;
 
         let mut channel = VerifierTranscript::from_data(challenger, proof);
@@ -133,7 +137,7 @@ where
             .iter()
             .map(|(air, _)| air.num_randomness())
             .max()
-            .unwrap_or(0);
+            .expect("there is at least one instance");
 
         let randomness: Vec<EF> = (0..max_num_randomness)
             .map(|_| channel.sample_algebra_element::<EF>())

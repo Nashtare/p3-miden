@@ -172,6 +172,8 @@ pub trait LiftedAir<F: Field, EF>: Sync + BaseAir<F> {
     ///   preprocessed (fixed) columns; their presence is an error.
     /// - **Positive auxiliary width** — every lifted AIR must declare at least one
     ///   auxiliary column (`aux_width() > 0`).
+    /// - **Positive aux randomness** — every lifted AIR must use at least one
+    ///   extension-field challenge for the auxiliary trace (`num_randomness() > 0`).
     /// - **Well-formed periodic columns** — each periodic column must be non-empty
     ///   and have a power-of-two length.
     fn validate(&self) -> Result<(), AirValidationError> {
@@ -180,6 +182,9 @@ pub trait LiftedAir<F: Field, EF>: Sync + BaseAir<F> {
         }
         if self.aux_width() == 0 {
             return Err(AirValidationError::ZeroAuxWidth);
+        }
+        if self.num_randomness() == 0 {
+            return Err(AirValidationError::ZeroNumRandomness);
         }
         for (i, col) in self.periodic_columns().iter().enumerate() {
             if col.is_empty() || !col.len().is_power_of_two() {
@@ -349,6 +354,8 @@ pub enum AirValidationError {
     },
     #[error("aux width must be positive")]
     ZeroAuxWidth,
+    #[error("num_randomness must be positive")]
+    ZeroNumRandomness,
     #[error("trace height {height} is not a power of two")]
     InvalidTraceHeight { height: usize },
     #[error("trace width mismatch: expected {expected}, got {actual}")]

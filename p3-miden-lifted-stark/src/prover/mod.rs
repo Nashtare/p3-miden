@@ -147,6 +147,8 @@ use crate::{StarkConfig, coset::LiftedCoset, proof::StarkOutput};
 /// Errors that can occur during proving.
 #[derive(Debug, Error)]
 pub enum ProverError {
+    #[error("no instances provided")]
+    NoInstances,
     #[error("AIR validation failed: {0}")]
     Air(#[from] AirValidationError),
     #[error(
@@ -232,6 +234,10 @@ where
     A: LiftedAir<F, EF>,
     B: AuxBuilder<F, EF>,
 {
+    if instances.is_empty() {
+        return Err(ProverError::NoInstances);
+    }
+
     let mut channel = ProverTranscript::new(challenger);
     // Validate AIR properties, witness dimensions, and ascending height.
     // Prover additionally checks that each trace width matches its AIR.
@@ -291,7 +297,7 @@ where
         .iter()
         .map(|(air, _, _)| air.num_randomness())
         .max()
-        .unwrap_or(0);
+        .expect("there is at least one instance");
 
     let randomness: Vec<EF> = (0..max_num_randomness)
         .map(|_| channel.sample_algebra_element::<EF>())
@@ -337,7 +343,6 @@ where
     channel.send_commitment(aux_committed.root());
 
     // Observe aux values into the transcript (binds to Fiat-Shamir state).
-    // When no AIR has aux columns, each entry is empty so nothing is sent.
     for vals in &all_aux_values {
         for &val in vals {
             channel.send_algebra_element(val);
