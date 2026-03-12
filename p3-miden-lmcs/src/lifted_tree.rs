@@ -263,27 +263,37 @@ where
         debug_assert!(alignment > 0, "alignment must be non-zero");
 
         // Build leaf hashes: absorb all matrix rows into sponge states, then squeeze.
+        // This can be done in a single pass for single matrix without salt.
         let leaf_digests: Vec<[PD::Value; DIGEST_ELEMS]> =
             info_span!("hash leaves").in_scope(|| {
-                let mut leaf_states: Vec<[PD::Value; WIDTH]> =
-                    build_leaf_states_upsampled::<PF, PD, M, H, WIDTH, DIGEST_ELEMS>(&leaves, h);
+                // Single matrix, no salt: absorb all rows into sponge states, then squeeze.
+                if SALT_ELEMS == 0 && salt.is_none() && leaves.len() == 1 {
+                    build_leaf_digests_single_matrix::<PF, PD, _, H, WIDTH, DIGEST_ELEMS>(
+                        &leaves[0], h,
+                    )
+                } else {
+                    let mut leaf_states: Vec<[PD::Value; WIDTH]> =
+                        build_leaf_states_upsampled::<PF, PD, M, H, WIDTH, DIGEST_ELEMS>(
+                            &leaves, h,
+                        );
 
-                // Absorb salt into states using SIMD-parallelized path (no-op when salt is None)
-                if let Some(ref salt_matrix) = salt {
-                    debug_assert_eq!(salt_matrix.height(), leaf_states.len());
-                    debug_assert_eq!(salt_matrix.width(), SALT_ELEMS);
-                    absorb_matrix::<PF, PD, _, _, WIDTH, DIGEST_ELEMS>(
-                        &mut leaf_states,
-                        salt_matrix,
-                        h,
-                    );
+                    // Absorb salt into states using SIMD-parallelized path (no-op when salt is None)
+                    if let Some(ref salt_matrix) = salt {
+                        debug_assert_eq!(salt_matrix.height(), leaf_states.len());
+                        debug_assert_eq!(salt_matrix.width(), SALT_ELEMS);
+                        absorb_matrix::<PF, PD, _, _, WIDTH, DIGEST_ELEMS>(
+                            &mut leaf_states,
+                            salt_matrix,
+                            h,
+                        );
+                    }
+
+                    // Squeeze the final hashes from the states
+                    leaf_states
+                        .into_par_iter()
+                        .map(|state| h.squeeze(&state))
+                        .collect()
                 }
-
-                // Squeeze the final hashes from the states
-                leaf_states
-                    .into_par_iter()
-                    .map(|state| h.squeeze(&state))
-                    .collect()
             });
 
         // Build digest layers by repeatedly compressing until we reach the root
@@ -434,6 +444,74 @@ where
     }
 
     states
+}
+
+/// Optimized helper for the single-matrix, non-hiding case.
+fn build_leaf_digests_single_matrix<PF, PD, M, H, const WIDTH: usize, const DIGEST_ELEMS: usize>(
+    matrix: &M,
+    sponge: &H,
+) -> Vec<[PD::Value; DIGEST_ELEMS]>
+where
+    PF: PackedValue,
+    PD: PackedValue,
+    M: Matrix<PF::Value>,
+    H: StatefulHasher<PF::Value, [PD::Value; DIGEST_ELEMS], State = [PD::Value; WIDTH]>
+        + StatefulHasher<PF, [PD; DIGEST_ELEMS], State = [PD; WIDTH]>
+        + Sync,
+{
+    const { assert!(PF::WIDTH.is_power_of_two()) };
+    const { assert!(PD::WIDTH.is_power_of_two()) };
+
+    let height = matrix.height();
+    debug_assert!(height > 0, "matrix height must be non-zero");
+
+    let default_digest = [PD::Value::default(); DIGEST_ELEMS];
+    let mut digests = vec![default_digest; height];
+
+    if height < PF::WIDTH || PF::WIDTH == 1 {
+        // Scalar path: hash each row independently with its own fresh state.
+        digests
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(row_idx, digest)| {
+                let mut state = [PD::Value::default(); WIDTH];
+                let row = matrix
+                    .row(row_idx)
+                    .expect("row index must be in range for single matrix");
+                sponge.absorb_into(&mut state, row);
+                *digest = sponge.squeeze(&state);
+            });
+    } else {
+        // SIMD path: hash PF::WIDTH rows in parallel using packed states.
+        assert!(
+            height % PF::WIDTH == 0,
+            "height must be a multiple of packing width"
+        );
+
+        // Start from fresh default states for this chunk.
+        let default_state = [PD::Value::default(); WIDTH];
+        let mut states_chunk: Vec<[PD::Value; WIDTH]> = vec![default_state; PF::WIDTH];
+
+        digests
+            .par_chunks_exact_mut(PF::WIDTH)
+            .enumerate()
+            .for_each(|(packed_idx, digests_chunk)| {
+                let row_idx = packed_idx * PF::WIDTH;
+
+                // Pack, absorb a vertically packed row, and unpack back into scalar states.
+                let mut packed_state: [PD; WIDTH] = PD::pack_columns(&states_chunk);
+                let row = matrix.vertically_packed_row::<PF>(row_idx);
+                sponge.absorb_into(&mut packed_state, row);
+                PD::unpack_into(&packed_state, &mut states_chunk);
+
+                // Squeeze a digest for each row in the chunk.
+                for (offset, digest) in digests_chunk.iter_mut().enumerate() {
+                    *digest = sponge.squeeze(&states_chunk[offset]);
+                }
+            });
+    }
+
+    digests
 }
 
 /// Incorporate one matrix's row-wise contribution into the running per-leaf states.
